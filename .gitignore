@@ -1,0 +1,23 @@
+# Simulation
+sim/build/
+*.vcd
+*.fst
+*.vvp
+sim_out
+compare_out
+sim_*
+!sim/
+# Vivado
+.Xil/
+*.jou
+*.log
+*.str
+*.wdb
+*.runs/
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+*.sim/
+# Local files
+.DS_Store
