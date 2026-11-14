@@ -68,7 +68,8 @@ module cache_2way_top #(
     // ------------------------------------------------------------------
     way_data_ram #(.SETS(SETS), .INDEX_W(INDEX_W)) u_way0_data (
         .clk     (clk),
-        .index   (index),
+        .set_idx (index),
+        .we      (|way0_word_we),
         .word_we (way0_word_we),
         .wdata   (data_wdata),
         .rdata   (way0_rdata)
@@ -76,7 +77,8 @@ module cache_2way_top #(
 
     way_data_ram #(.SETS(SETS), .INDEX_W(INDEX_W)) u_way1_data (
         .clk     (clk),
-        .index   (index),
+        .set_idx (index),
+        .we      (|way1_word_we),
         .word_we (way1_word_we),
         .wdata   (data_wdata),
         .rdata   (way1_rdata)
@@ -84,7 +86,7 @@ module cache_2way_top #(
 
     way_tag_ram #(.SETS(SETS), .INDEX_W(INDEX_W), .TAG_W(TAG_W)) u_way0_tag (
         .clk   (clk),
-        .index (index),
+        .set_idx (index),
         .we    (way0_tag_we),
         .wtag  (wtag),
         .rtag  (way0_tag)
@@ -92,7 +94,7 @@ module cache_2way_top #(
 
     way_tag_ram #(.SETS(SETS), .INDEX_W(INDEX_W), .TAG_W(TAG_W)) u_way1_tag (
         .clk   (clk),
-        .index (index),
+        .set_idx (index),
         .we    (way1_tag_we),
         .wtag  (wtag),
         .rtag  (way1_tag)
