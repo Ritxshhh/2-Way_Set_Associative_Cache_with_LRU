@@ -103,27 +103,29 @@ module cache_2way_top #(
     // ------------------------------------------------------------------
     // Per-set bookkeeping
     // ------------------------------------------------------------------
-    valid_bits #(.SETS(SETS), .INDEX_W(INDEX_W)) u_valid (
+    valid_bits u_valid (
         .clk       (clk),
         .rst_n     (rst_n),
-        .index     (index),
-        .set_valid (set_valid),
-        .set_way   (set_valid_way),
+        .set_idx   (index),
+        .set_way0  (set_valid && !set_valid_way),
+        .set_way1  (set_valid && set_valid_way),
+        .clear_way0(1'b0),
+        .clear_way1(1'b0),
         .valid0    (valid0),
         .valid1    (valid1)
     );
 
-    lru_state #(.SETS(SETS), .INDEX_W(INDEX_W)) u_lru (
+    lru_state u_lru (
         .clk       (clk),
         .rst_n     (rst_n),
-        .index     (index),
+        .set_idx   (index),
         .touch     (touch),
         .touch_way (touch_way),
         .lru_way   (lru_way)
     );
 
-    tag_comparator #(.TAG_W(TAG_W)) u_cmp (
-        .tag      (cmp_tag),
+    tag_comparator u_cmp (
+        .addr_tag (cmp_tag),
         .way0_tag (way0_tag),
         .way1_tag (way1_tag),
         .valid0   (valid0),
