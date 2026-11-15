@@ -9,15 +9,15 @@ resource usage, and timing.
 
 | Name | Role |
 | --- | --- |
-| Punit | Direct-mapped baseline cache; design-parameters doc |
-| Yash Kumar | Way-0/Way-1 RAM; memory interface & model; repo lead |
-| Dhruv Kumar | Valid bits & LRU state; tag comparators |
-| Ritesh | Cache controller FSM; top-level integration; video lead |
+| [Punit Yadav](https://github.com/PunitYadavRao) | Direct-mapped baseline cache; design-parameters doc |
+| [Yash Kumar](https://github.com/hypnoastic) | Way-0/Way-1 RAM; memory interface & model; repo lead |
+| [Dhruv Kumar](https://github.com/drv-01) | Valid bits & LRU state; tag comparators |
+| [Ritesh](https://github.com/Ritxshhh) | Cache controller FSM; top-level integration; video lead |
 | Parul | Verification (traces, testbench), synthesis, hit-rate analysis |
 
 ## Demo Video
 
-[Prototype demo video (≤5 min)](<video-link-here>)
+Demo video pending recording/upload. Parul’s GitHub profile is pending confirmation.
 
 ## Design Parameters
 
@@ -34,7 +34,7 @@ Both caches hold the same 2 KB of data so the comparison is apples-to-apples.
 | Tag bits | 21 | 22 |
 | Replacement policy | n/a — one line per index | LRU, 1 bit per set |
 
-Full write-up: [`docs/design_parameters.md`](docs/design_parameters.md)
+The table above records the agreed design parameters.
 
 ## Repository Structure
 
@@ -64,45 +64,43 @@ Full write-up: [`docs/design_parameters.md`](docs/design_parameters.md)
 
 ## Building & Running
 
-> Toolchain: Xilinx Vivado (WebPACK) for simulation + synthesis, or Icarus Verilog +
-> GTKWave for simulation only. Replace the commands below with whichever your lab uses.
-
-**Run a single testbench (Icarus Verilog):**
+Install Icarus Verilog (macOS: `brew install icarus-verilog`), then from the repo root:
 
 ```sh
-cd tb
-iverilog -o sim_out tb_cache_2way_smoke.v ../rtl/*.v
-vvp sim_out
-gtkwave dump.vcd   # optional waveform viewing
+make test
 ```
 
-**Regenerate access traces:**
+This runs `tb_way_ram` and `tb_mem_model` (memory latencies 6, 1, and 3).
+Every check prints PASS or terminates with a nonzero failure. See
+[verification results](docs/verification.md) for tested values and timing.
+
+Run the existing integrated smoke test with the real modules:
 
 ```sh
-cd sim
-python3 gen_traces.py   # writes sim/traces/random.trc, locality.trc, conflict.trc
+mkdir -p sim/build
+iverilog -g2012 -s tb_cache_2way_smoke -o sim/build/cache.vvp rtl/*.v tb/tb_cache_2way_smoke.v
+vvp sim/build/cache.vvp
 ```
 
-**Run the direct-mapped vs. 2-way comparison:**
+Do not compile `tb/stubs/submodule_stubs.v` with real RTL: module names overlap.
+The smoke test uses its own inline memory; the dedicated memory test verifies
+`rtl/mem_model.v`. See the [Member 3 and 4 port handoff](docs/member_handoff.md)
+for interfaces, memory range, request protocol, and personal commit instructions.
 
-```sh
-cd tb
-iverilog -o compare_out tb_compare.v ../rtl/*.v
-vvp compare_out +trace=../sim/traces/conflict.trc
-```
+`sim/traces`, `synth`, and `docs` are present for later trace analysis,
+synthesis reports, and documentation. Trace generation, cache comparison,
+and Vivado synthesis scripts are pending their owners' contributions.
 
-Hit-rate and resource results are written up in [`docs/hit_rate_analysis.md`](docs/hit_rate_analysis.md)
-and [`synth/synthesis_summary.md`](synth/synthesis_summary.md).
+## Contributing
 
-**Re-run synthesis (Vivado, batch mode):**
-
-```sh
-cd synth
-vivado -mode batch -source synth_direct_mapped.tcl
-vivado -mode batch -source synth_cache_2way.tcl
-```
+Repository: [Ritxshhh/2-Way_Set_Associative_Cache_with_LRU](https://github.com/Ritxshhh/2-Way_Set_Associative_Cache_with_LRU).
+Each teammate must commit and push their own work using their own GitHub account.
+This change is authored as Yash Kumar. GitHub contributor records verify
+`drv-01` and `PunitYadavRao`; the repository owner is `Ritxshhh`.
+The local authenticated account is `hypnoastic`. Other teammates' future pushes
+must be completed by those teammates; this repository cannot enforce their identity.
 
 ## Report & Submission
 
 - IEEE report: [`report/IEEE_report.pdf`](report/IEEE_report.pdf)
-- Full task checklist and per-member task breakdown: see the project plan doc.
+- RAM/memory integration and ownership: [member handoff](docs/member_handoff.md).
