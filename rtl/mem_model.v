@@ -2,6 +2,8 @@
 // Supported byte addresses: 0x00000000..0x0000ffff. Low four bits ignored.
 // Requests while busy/acknowledging are ignored. Drop strobes after acceptance.
 // If both strobes are asserted, write takes priority.
+`timescale 1ns/1ps
+
 module mem_model #(parameter LATENCY = 6) (
     input wire clk,
     input wire rst_n,

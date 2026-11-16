@@ -11,6 +11,8 @@
 // All outputs except the registered internal state are Moore outputs decoded
 // from the current state, so each state takes effect on one clock edge.
 
+`timescale 1ns/1ps
+
 module cache_fsm #(
     parameter ADDR_W   = 32,
     parameter SETS     = 64,
