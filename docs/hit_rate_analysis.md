@@ -66,6 +66,10 @@ Each workload consists of $N = 2{,}000$ word-level memory operations executed th
 
 ## 3. Hardware Resource vs. Performance Trade-Off
 
+> **⚠ The 2-way synthesis numbers in this section are pending a Vivado re-run**
+> (the reported LUTRAM count is too low to hold the cache's storage). See the
+> note at the top of [`synth/synthesis_summary.md`](../synth/synthesis_summary.md).
+
 The table below integrates the FPGA post-synthesis implementation results (Artix-7 `xc7a35tcsg324-1`) with the benchmark performance metrics:
 
 | Design Dimension | Direct-Mapped Baseline | 2-Way Set-Associative Cache | Comparison & Trade-Off |
