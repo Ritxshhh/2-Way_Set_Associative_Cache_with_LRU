@@ -1,0 +1,10 @@
+# LaTeX build intermediates (IEEE_report.pdf itself is committed)
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.xdv
+*.fls
+*.fdb_latexmk
