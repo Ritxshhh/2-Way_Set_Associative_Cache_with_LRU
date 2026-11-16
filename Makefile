@@ -1,11 +1,11 @@
-.PHONY: test test-way test-memory test-dm test-2way test-compare test-writeback clean
+.PHONY: test test-way test-memory test-dm test-2way test-compare test-writeback test-traces clean
 IVERILOG ?= iverilog
 VVP ?= vvp
 BUILD := sim/build
 
 RTL_ALL := rtl/cache_2way_top.v rtl/cache_fsm.v rtl/way_data_ram.v rtl/way_tag_ram.v rtl/valid_bits.v rtl/lru_state.v rtl/tag_comparator.v
 
-test: test-way test-memory test-dm test-2way test-compare test-writeback
+test: test-way test-memory test-dm test-2way test-compare test-writeback test-traces
 
 $(BUILD):
 	mkdir -p $@
@@ -35,6 +35,17 @@ test-compare: | $(BUILD)
 test-writeback: | $(BUILD)
 	$(IVERILOG) -g2012 -Wall -s tb_cache_2way_writeback -o $(BUILD)/writeback.vvp $(RTL_ALL) rtl/mem_model.v tb/tb_cache_2way_writeback.v
 	$(VVP) $(BUILD)/writeback.vvp
+
+$(BUILD)/compare_trace.vvp: | $(BUILD)
+	$(IVERILOG) -g2012 -Wall -s tb_compare -o $@ rtl/direct_mapped_cache.v $(RTL_ALL) rtl/mem_model.v tb/tb_compare.v
+
+test-traces: $(BUILD)/compare_trace.vvp
+	@echo ">>> Running Benchmark: random.trc..."
+	$(VVP) $(BUILD)/compare_trace.vvp +trace=sim/traces/random.trc
+	@echo ">>> Running Benchmark: locality.trc..."
+	$(VVP) $(BUILD)/compare_trace.vvp +trace=sim/traces/locality.trc
+	@echo ">>> Running Benchmark: conflict.trc..."
+	$(VVP) $(BUILD)/compare_trace.vvp +trace=sim/traces/conflict.trc
 
 clean:
 	rm -rf $(BUILD) *.vcd sim_*
