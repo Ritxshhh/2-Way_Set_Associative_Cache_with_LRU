@@ -1,5 +1,7 @@
 // valid_bits.v
 // Two valid bits per set (Way-0, Way-1), 64 sets.
+`timescale 1ns/1ps
+
 module valid_bits (
     input  wire        clk,
     input  wire        rst_n,

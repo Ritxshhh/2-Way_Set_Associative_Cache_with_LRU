@@ -1,4 +1,6 @@
 // One way's tags; contents become meaningful when its valid bit is set.
+`timescale 1ns/1ps
+
 module way_tag_ram #(
     parameter SETS = 64,
     parameter INDEX_W = 6,

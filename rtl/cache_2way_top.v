@@ -13,6 +13,8 @@
 //   tag_comparator x1                  hit / hit_way
 //   cache_fsm     x1                   controller (also holds the dirty bits)
 
+`timescale 1ns/1ps
+
 module cache_2way_top #(
     parameter ADDR_W   = 32,
     parameter SETS     = 64,
@@ -130,6 +132,8 @@ module cache_2way_top #(
         .way1_tag (way1_tag),
         .valid0   (valid0),
         .valid1   (valid1),
+        .way0_hit (),           // per-way hits unused; FSM needs hit/hit_way only
+        .way1_hit (),
         .hit      (hit),
         .hit_way  (hit_way)
     );

@@ -13,6 +13,8 @@
 //   addr[1:0] = 00            (word-aligned)
 // ============================================================================
 
+`timescale 1ns/1ps
+
 module direct_mapped_cache #(
     parameter ADDR_W    = 32,
     parameter NUM_LINES = 128,

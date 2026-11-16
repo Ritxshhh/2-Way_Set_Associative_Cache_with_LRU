@@ -1,6 +1,8 @@
 // lru_state.v
 // One LRU bit per set, 64 sets.
 // lru_bit[set]==0 → Way-0 is LRU (evict next); ==1 → Way-1 is LRU.
+`timescale 1ns/1ps
+
 module lru_state (
     input  wire        clk,
     input  wire        rst_n,
