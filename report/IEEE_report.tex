@@ -52,7 +52,7 @@ parul.2024@nst.rishihood.edu.in}
 \maketitle
 
 \begin{abstract}
-Cache organization is a first-order driver of memory-system performance, yet the cost/benefit trade-off of adding associativity is rarely made concrete for students designing cache hardware from scratch. This paper presents the Phase~I design of two competing cache architectures implemented in Verilog for a Modern Computer Architecture course project: a direct-mapped cache and a 2-way set-associative cache with least-recently-used (LRU) replacement, both sized to hold an identical 2~KB of data so that any difference in behavior is attributable to associativity alone rather than capacity. We detail the address decomposition, module-level architecture, and finite-state-machine control logic shared by both designs, and describe the trace-driven evaluation methodology -- randomized, locality-biased, and adversarial conflict-access traces -- that will be used to measure hit rate, together with the FPGA synthesis flow used to quantify the resource and timing cost of the second way. Quantitative hit-rate, resource-utilization, and timing results produced by this methodology will be reported in the project's next phase once RTL implementation, verification, and synthesis are complete; this paper establishes the design, the shared interface, and the evaluation plan that those results will populate.
+Cache organization is a first-order driver of memory-system performance, yet the cost/benefit trade-off of adding associativity is rarely made concrete for students designing cache hardware from scratch. This paper presents the Phase~I design of two competing cache architectures implemented in Verilog for a Modern Computer Architecture course project: a direct-mapped cache and a 2-way set-associative cache with least-recently-used (LRU) replacement, both sized to hold an identical 2~KB of data so that any difference in behavior is attributable to associativity alone rather than capacity. We detail the address decomposition, module-level architecture, and finite-state-machine control logic shared by both designs, and describe the trace-driven evaluation methodology -- randomized, locality-biased, and adversarial conflict-access traces -- used to measure hit rate, together with the FPGA synthesis flow used to quantify the resource and timing cost of the second way. Both designs are implemented and verified in simulation: on the conflict trace the direct-mapped cache hits on 0.00\% of accesses while the 2-way cache hits on 99.90\%, and on the locality trace the 2-way cache raises the hit rate from 88.35\% to 89.40\% and cuts average access time from 3.06 to 1.90 cycles. FPGA resource and timing results will be reported in the project's next phase once synthesis is finalized.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -93,7 +93,7 @@ Replacement & n/a & LRU, 1 bit/set \\
 \end{table}
 
 \subsection{Architecture}
-Fig.~\ref{fig:arch} shows the shared architecture of the 2-way design. A single controller finite-state machine (FSM) is wired to four parallel state blocks -- the two ways' data/tag RAMs, the tag comparator, and the combined valid/LRU state -- and is the only block that reaches main memory, through a dedicated memory interface. The direct-mapped baseline uses the same controller/memory-interface/CPU-interface skeleton with the two-way-specific blocks (the second way and the LRU state) removed, which keeps the two designs' external interfaces identical and lets both be driven by the same testbench and trace files.
+Fig.~\ref{fig:arch} shows the shared architecture of the 2-way design. A single controller finite-state machine (FSM) is wired to four parallel state blocks -- the two ways' data/tag RAMs, the tag comparator, and the combined valid/LRU state -- and is the only block that talks to main memory, driving the memory-side request and handshake signals directly. The direct-mapped baseline uses the same controller skeleton, with identical CPU-side and memory-side ports, and the two-way-specific blocks (the second way and the LRU state) removed, which keeps the two designs' external interfaces identical and lets both be driven by the same testbench and trace files.
 
 \begin{figure}[h]
 \centering
@@ -104,8 +104,7 @@ Fig.~\ref{fig:arch} shows the shared architecture of the 2-way design. A single 
 ]
 \node[box] (cpu) {CPU};
 \node[box, right=of cpu, minimum width=3.0cm] (ctrl) {Cache\\Controller (FSM)};
-\node[box, right=of ctrl, minimum width=2.3cm] (mem) {Memory\\Interface};
-\node[box, right=of mem, minimum width=2.0cm] (mm) {Main\\Memory};
+\node[box, right=of ctrl, minimum width=2.0cm] (mm) {Main\\Memory};
 
 \node[box, below=14mm of ctrl, xshift=-3.0cm, minimum width=1.9cm] (w0) {Way-0\\RAM};
 \node[box, right=4mm of w0, minimum width=1.9cm] (w1) {Way-1\\RAM};
@@ -113,15 +112,14 @@ Fig.~\ref{fig:arch} shows the shared architecture of the 2-way design. A single 
 \node[box, right=4mm of cmp, minimum width=1.9cm] (lru) {Valid +\\LRU};
 
 \draw[-{Latex}] (cpu) -- (ctrl);
-\draw[-{Latex}] (ctrl) -- (mem);
-\draw[-{Latex}] (mem) -- (mm);
+\draw[{Latex}-{Latex}] (ctrl) -- (mm);
 
 \draw (ctrl.south) -- ++(0,-7mm) coordinate (bus);
 \draw (w0.north |- bus) -- (lru.north |- bus);
 \foreach \n in {w0,w1,cmp,lru} \draw[-{Latex}] (\n.north |- bus) -- (\n.north);
 \end{tikzpicture}%
 }
-\caption{One controller FSM coordinates both ways, the tag comparator, and valid/LRU state on every access; only the memory interface reaches main memory.}
+\caption{One controller FSM coordinates both ways, the tag comparator, and valid/LRU state on every access; only the controller talks to main memory.}
 \label{fig:arch}
 \end{figure}
 
@@ -147,8 +145,30 @@ Table~\ref{tab:fsm} gives the controller's state transition table for the 2-way 
 \end{tabular}
 \end{table}
 
-\subsection{Planned Evaluation Methodology}
-Both caches expose an identical CPU-side and memory-side interface, so a single trace-driven testbench can drive either one. Three synthetic access traces are used: (i) a uniformly random trace, which exercises ordinary compulsory/capacity behavior; (ii) a locality-biased trace, where 90\% of accesses fall within a small working set, modeling typical program behavior; and (iii) an adversarial conflict trace, in which two addresses are chosen to alias to the same direct-mapped index while differing in tag, which the direct-mapped cache cannot hold simultaneously but the 2-way cache can. Hit rate and average access latency will be measured for both caches on all three traces, and both designs will be synthesized for the same FPGA target so that look-up-table, flip-flop, and block-RAM utilization and maximum clock frequency can be reported alongside the hit-rate numbers -- giving a joint area/performance comparison rather than a hit-rate number in isolation. These results are the subject of the project's next phase.
+\subsection{Evaluation Methodology}
+Both caches expose an identical CPU-side and memory-side interface, so a single trace-driven testbench can drive either one. Three synthetic access traces are used: (i) a uniformly random trace, which exercises ordinary compulsory/capacity behavior; (ii) a locality-biased trace, where 90\% of accesses fall within a small working set, modeling typical program behavior; and (iii) an adversarial conflict trace, in which two addresses are chosen to alias to the same direct-mapped index while differing in tag, which the direct-mapped cache cannot hold simultaneously but the 2-way cache can. Hit rate and average access latency are measured for both caches on all three traces, and both designs are synthesized for the same FPGA target so that look-up-table, flip-flop, and block-RAM utilization and maximum clock frequency can be reported alongside the hit-rate numbers -- giving a joint area/performance comparison rather than a hit-rate number in isolation. Synthesis results are being finalized and will be reported in the project's next phase.
+
+\subsection{Prototype Status and Verification Results}
+The RTL for both caches is complete and passes 63 automated checks: unit tests of every submodule, the memory model at three latencies, smoke tests of each cache, a dirty-line write-back test, and a head-to-head conflict test. In that conflict test both caches read addresses \texttt{0x000} and \texttt{0x800} alternately; both map to direct-mapped line~0 and to 2-way set~0. The direct-mapped cache misses on all five accesses, while the 2-way cache misses only on the two cold fills and then hits, because the two blocks occupy different ways of the same set.
+
+Table~\ref{tab:results} gives the trace-driven results over 2,000 accesses per trace. A golden reference model checks every read, and neither cache returns a single incorrect word. The conflict trace shows the effect associativity is meant to remove; on the random trace, whose 64~KB address range is far larger than the 2~KB cache, both caches hit about 3\% of the time and the small difference is noise.
+
+\begin{table}[h]
+\centering
+\caption{Trace-Driven Simulation Results (2,000 Accesses per Trace)}
+\label{tab:results}
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+ & \multicolumn{2}{c}{\textbf{Hit rate}} & \multicolumn{2}{c}{\textbf{Avg.\ cycles/access}} \\
+\cmidrule(lr){2-3}\cmidrule(l){4-5}
+\textbf{Trace} & \textbf{DM} & \textbf{2-way} & \textbf{DM} & \textbf{2-way} \\
+\midrule
+Random   & 3.35\%  & 3.00\%  & 10.83 & 9.69 \\
+Locality & 88.35\% & 89.40\% & 3.06  & 1.90 \\
+Conflict & 0.00\%  & 99.90\% & 10.00 & 1.01 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Individual Contributions}
 \textbf{Punit} implemented the direct-mapped baseline cache controller and its verification testbench, authored the cache design-parameter specification, and wrote the Proposed Solution section of this report.
