@@ -70,28 +70,36 @@ def gen_locality(n_loops=10, loop_len=16, seed=123):
 
     return accesses
 
-def gen_conflict(n_reps=40, seed=999):
+def gen_conflict(n_reps=30, seed=999):
     """
     Adversarial conflict pattern:
-    Multiple addresses that map to the exact same cache set (same index bits [10:4] in DM, [9:4] in 2W).
-    In DM: index = addr[10:4]. Stride of 0x0800 (2048 B) gives same index with differing tags.
-    In 2W: index = addr[9:4]. Stride of 0x0400 (1024 B) gives same set index.
-    Alternating between 3 conflicting tags on set 0 forces direct-mapped to thrash on every access,
-    while 2-way LRU absorbs two active lines.
+    Models two interleaved arrays A and B that alias to the exact same cache sets.
+    Array A: 0x00001000 .. (index 0 for DM and 2W)
+    Array B: 0x00001800 .. (index 0 for DM and 2W)
+    Each line holds 4 words. We access A[0], B[0], A[1], B[1], A[2], B[2], A[3], B[3].
+    In Direct-Mapped:
+      A and B alternate on the same single line, evicting each other on EVERY access!
+      Result: 0% hit rate (thrashing).
+    In 2-Way Set-Associative:
+      A occupies Way-0, B occupies Way-1.
+      Subsequent word accesses [1..3] hit in their respective ways!
+      Result: ~75% hit rate.
     """
     random.seed(seed)
     accesses = []
-    # 3 addresses all mapping to set index 0:
-    # Addr 0: 0x00000000 (tag 0)
-    # Addr 1: 0x00000800 (DM tag 1, 2W set 0, 2W tag 2)
-    # Addr 2: 0x00001000 (DM tag 2, 2W set 0, 2W tag 4)
-    conflict_addrs = [0x00000000, 0x00000800, 0x00001000]
+    base_A = 0x00001000
+    base_B = 0x00001800
 
     for rep in range(n_reps):
-        for idx, addr in enumerate(conflict_addrs):
-            op = "W" if (rep % 4 == 0 and idx == 0) else "R"
-            wdata = 0xDEAD0000 | rep
-            accesses.append((op, addr, wdata))
+        # Scan 4 sets, with 4 words per set
+        for s in range(4):
+            set_offset = s * 16
+            for w in range(4):
+                word_offset = w * 4
+                addr_A = (base_A + set_offset + word_offset) & ADDR_MASK
+                addr_B = (base_B + set_offset + word_offset) & ADDR_MASK
+                accesses.append(("R", addr_A, 0))
+                accesses.append(("R", addr_B, 0))
 
     return accesses
 
