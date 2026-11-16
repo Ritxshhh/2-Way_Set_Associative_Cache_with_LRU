@@ -17,7 +17,7 @@ resource usage, and timing.
 
 ## Demo Video
 
-Demo video pending recording/upload.
+Demo video pending recording/upload. Script and shot list: [`docs/video_script.md`](docs/video_script.md).
 
 ## Design Parameters
 
@@ -44,7 +44,7 @@ The table above records the agreed design parameters.
 ├── tb/             Testbenches
 ├── sim/            Simulation scripts, waveforms, and sim/traces/ (access-trace files)
 ├── synth/          Synthesis utilization & timing reports
-├── docs/           design_parameters.md, hit_rate_analysis.md, verification.md, video_script.md
+├── docs/           hit_rate_analysis.md, verification.md, member_handoff.md, video_script.md
 ├── report/         IEEE report source + exported PDF
 └── README.md
 ```
