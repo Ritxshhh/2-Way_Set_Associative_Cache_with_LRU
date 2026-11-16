@@ -17,7 +17,7 @@ resource usage, and timing.
 
 ## Demo Video
 
-Demo video pending recording/upload. Script and shot list: [`docs/video_script.md`](docs/video_script.md).
+Watch the Phase I demo: [`report/MCA_Phase1.mov`](report/MCA_Phase1.mov).
 
 ## Design Parameters
 
