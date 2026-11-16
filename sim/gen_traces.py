@@ -1,109 +1,134 @@
 #!/usr/bin/env python3
 """
-gen_traces.py - Access trace generator for cache benchmark comparison.
+sim/gen_traces.py - Access trace generator for cache benchmark comparison.
+Python 3, standard library only.
 
 Generates three access trace workloads:
   1. random.trc   - Uniformly distributed random addresses (low locality)
-  2. locality.trc - Loop-based accesses with high temporal and spatial locality
-  3. conflict.trc - Stride-based accesses mapping to conflicting cache sets
+  2. locality.trc - 90% accesses to a fixed 8-block working set, 10% random
+  3. conflict.trc - Two colliding addresses alternating (worst-case for direct-mapped)
 
-Trace Format:
-  <OP> <ADDR> <WDATA>
-  where OP is 'R' (read) or 'W' (write),
-  ADDR is 32-bit hex (word-aligned, low 2 bits = 00),
-  WDATA is 32-bit hex (ignored for reads).
+Output format per line:
+  R 0xXXXXXXXX
+  W 0xXXXXXXXX
 """
 
 import os
 import random
+from collections import Counter
 
-TRACE_DIR = os.path.join(os.path.dirname(__file__), "traces")
-os.makedirs(TRACE_DIR, exist_ok=True)
+# 4096 blocks of 16 bytes = 64 KB memory space (0x00000000 to 0x0000FFF0)
+MAX_BLOCK_IDX = 0x0FFF  # 4095
+ADDR_MASK = MAX_BLOCK_IDX
 
-# Word alignment mask within 64 KB memory space (0x0000 to 0xFFFC)
-MAX_BLOCK = 4095  # 4096 lines of 16 bytes = 65536 bytes
-ADDR_MASK = 0x0000FFFC
 
-def write_trace(filename, accesses):
-    filepath = os.path.join(TRACE_DIR, filename)
-    with open(filepath, "w") as f:
-        for op, addr, wdata in accesses:
-            f.write(f"{op} {addr:08x} {wdata:08x}\n")
-    print(f"Generated {filepath} ({len(accesses)} operations)")
-
-def gen_random(n=500, seed=42):
-    random.seed(seed)
+def gen_random(n=2000, seed=42):
+    """
+    1. gen_random(n=2000) -> sim/traces/random.trc:
+       Each addr = uniformly random value masked to sensible range, shifted so it's
+       block-aligned (addr = random.randint(0, 0xFFFF) << 4 masked to 4096 blocks).
+       About 20% writes, 80% reads, chosen randomly per access.
+    """
+    if seed is not None:
+        random.seed(seed)
     accesses = []
     for _ in range(n):
-        op = "W" if random.random() < 0.25 else "R"
-        # Word aligned address in 0x0000..0xFFFC
-        addr = (random.randint(0, MAX_BLOCK * 4) * 4) & ADDR_MASK
-        wdata = random.randint(0, 0xFFFFFFFF) if op == "W" else 0
-        accesses.append((op, addr, wdata))
+        is_write = (random.random() < 0.20)
+        # Block-aligned address within backing store range
+        addr = (random.randint(0, 0xFFFF) & ADDR_MASK) << 4
+        accesses.append((is_write, addr))
     return accesses
 
-def gen_locality(n_loops=10, loop_len=16, seed=123):
+
+def gen_locality(n=2000, seed=123):
     """
-    Simulates program execution:
-    - Frequent sequential reads within a local array (spatial locality)
-    - Repeated iterations over the same working set (temporal locality)
-    - Occasional writes back to the working set
+    2. gen_locality(n=2000) -> sim/traces/locality.trc:
+       Pick a fixed working set of 8 block-aligned addresses once at the start;
+       90% of accesses pick randomly from that set of 8,
+       10% pick a fresh random address from the full range (not added to the set).
+       About 20% writes, 80% reads.
     """
-    random.seed(seed)
+    if seed is not None:
+        random.seed(seed)
+    # Pick 8 distinct block-aligned addresses
+    working_set = []
+    while len(working_set) < 8:
+        cand = (random.randint(0, 0xFFFF) & ADDR_MASK) << 4
+        if cand not in working_set:
+            working_set.append(cand)
+
     accesses = []
-    base_array = 0x00000100
-    stack_base = 0x00000800
-
-    for _ in range(n_loops):
-        # Sequential scan over small working set
-        for i in range(loop_len):
-            addr = (base_array + i * 4) & ADDR_MASK
-            op = "W" if random.random() < 0.20 else "R"
-            wdata = 0xA0000000 | i
-            accesses.append((op, addr, wdata))
-
-        # Access local stack variables
-        for s in range(4):
-            addr = (stack_base + s * 4) & ADDR_MASK
-            accesses.append(("W", addr, 0x55550000 | s))
-            accesses.append(("R", addr, 0))
-
+    for _ in range(n):
+        is_write = (random.random() < 0.20)
+        if random.random() < 0.90:
+            addr = random.choice(working_set)
+        else:
+            addr = (random.randint(0, 0xFFFF) & ADDR_MASK) << 4
+        accesses.append((is_write, addr))
     return accesses
 
-def gen_conflict(n_reps=30, seed=999):
+
+def gen_conflict(n=2000):
     """
-    Adversarial conflict pattern:
-    Models two interleaved arrays A and B that alias to the exact same cache sets.
-    Array A: 0x00001000 .. (index 0 for DM and 2W)
-    Array B: 0x00001800 .. (index 0 for DM and 2W)
-    Each line holds 4 words. We access A[0], B[0], A[1], B[1], A[2], B[2], A[3], B[3].
-    In Direct-Mapped:
-      A and B alternate on the same single line, evicting each other on EVERY access!
-      Result: 0% hit rate (thrashing).
-    In 2-Way Set-Associative:
-      A occupies Way-0, B occupies Way-1.
-      Subsequent word accesses [1..3] hit in their respective ways!
-      Result: ~75% hit rate.
+    3. gen_conflict(n=2000) -> sim/traces/conflict.trc:
+       Pick two addresses that collide in the direct-mapped cache's index
+       (same addr[10:4]) but differ in tag (addr[31:11]) -- e.g. 0x00000000
+       and 0x00000800, the exact pair Member 1 used in their smoke test --
+       and alternate A, B, A, B, ... for the whole trace.
     """
-    random.seed(seed)
+    addr_A = 0x00000000
+    addr_B = 0x00000800
     accesses = []
-    base_A = 0x00001000
-    base_B = 0x00001800
-
-    for rep in range(n_reps):
-        # Scan 4 sets, with 4 words per set
-        for s in range(4):
-            set_offset = s * 16
-            for w in range(4):
-                word_offset = w * 4
-                addr_A = (base_A + set_offset + word_offset) & ADDR_MASK
-                addr_B = (base_B + set_offset + word_offset) & ADDR_MASK
-                accesses.append(("R", addr_A, 0))
-                accesses.append(("R", addr_B, 0))
-
+    for i in range(n):
+        addr = addr_A if (i % 2 == 0) else addr_B
+        # Alternate reads between colliding addresses
+        accesses.append((False, addr))
     return accesses
+
+
+def write_trace(filepath, accesses):
+    """Write accesses to a file with exact format: R 0xXXXXXXXX or W 0xXXXXXXXX."""
+    os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
+    with open(filepath, "w") as f:
+        for is_write, addr in accesses:
+            op = "W" if is_write else "R"
+            f.write(f"{op} 0x{addr:08X}\n")
+
+
+def print_summary(trace_name, accesses):
+    """Print unique address count and top 5 most-repeated addresses."""
+    counts = Counter(addr for _, addr in accesses)
+    print(f"=== Summary for {trace_name} ({len(accesses)} accesses) ===")
+    print(f"  Unique address count: {len(counts)}")
+    print("  Top 5 most-repeated addresses:")
+    for rank, (addr, count) in enumerate(counts.most_common(5), 1):
+        pct = (count / len(accesses)) * 100.0
+        print(f"    {rank}. 0x{addr:08X}: {count} accesses ({pct:.2f}%)")
+    print()
+
+
+def main():
+    trace_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "traces")
+    os.makedirs(trace_dir, exist_ok=True)
+
+    # 1. Random trace
+    random_path = os.path.join(trace_dir, "random.trc")
+    random_acc = gen_random(n=2000)
+    write_trace(random_path, random_acc)
+    print_summary("random.trc", random_acc)
+
+    # 2. Locality trace
+    locality_path = os.path.join(trace_dir, "locality.trc")
+    locality_acc = gen_locality(n=2000)
+    write_trace(locality_path, locality_acc)
+    print_summary("locality.trc", locality_acc)
+
+    # 3. Conflict trace
+    conflict_path = os.path.join(trace_dir, "conflict.trc")
+    conflict_acc = gen_conflict(n=2000)
+    write_trace(conflict_path, conflict_acc)
+    print_summary("conflict.trc", conflict_acc)
+
 
 if __name__ == "__main__":
-    write_trace("random.trc", gen_random(400))
-    write_trace("locality.trc", gen_locality(n_loops=15, loop_len=16))
-    write_trace("conflict.trc", gen_conflict(n_reps=50))
+    main()

@@ -1,0 +1,75 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+-----------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2022.2 (lin64) Build 3671981 Fri Oct 14 04:59:54 MDT 2022
+| Date         : Mon Nov 16 16:47:30 2026
+| Host         : ca-lab-workstation running 64-bit Ubuntu 22.04.3 LTS
+| Command      : report_utilization -file direct_mapped_utilization.rpt -pb direct_mapped_utilization.pb
+| Design       : direct_mapped_cache
+| Device       : 7a35tcsg324-1
+| Design State : Synthesized
+-----------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Slice Logic
+2. Slice Logic Distribution
+3. Memory
+4. DSP
+5. IO and GT Specific
+6. Clocking
+7. Specific Feature
+8. Primitives
+9. Black Boxes
+10. Instantiated Netlists
+
+1. Slice Logic
+--------------
+
++-------------------------+-------+-------+-----------+-------+
+|        Site Type        |  Used | Fixed | Available | Util% |
++-------------------------+-------+-------+-----------+-------+
+| Slice LUTs*             |  2428 |     0 |     20800 | 11.67 |
+|   LUT as Logic          |  2428 |     0 |     20800 | 11.67 |
+|   LUT as Memory         |     0 |     0 |      9600 |  0.00 |
+| Slice Registers         | 19374 |     0 |     41600 | 46.57 |
+|   Register as Flip Flop | 19374 |     0 |     41600 | 46.57 |
+|   Register as Latch     |     0 |     0 |     41600 |  0.00 |
+| F7 Muxes                |   256 |     0 |     16300 |  1.57 |
+| F8 Muxes                |   128 |     0 |      8150 |  1.57 |
++-------------------------+-------+-------+-----------+-------+
+* Warning! The use of Slice LUTs is estimated based on the synthesized design.
+
+
+2. Slice Logic Distribution
+---------------------------
+
++-------------------------------------------+-------+-------+-----------+-------+
+|                 Site Type                 |  Used | Fixed | Available | Util% |
++-------------------------------------------+-------+-------+-----------+-------+
+| Slice                                     |  5214 |     0 |      8150 | 63.98 |
+|   SLICEL                                  |  3120 |     0 |           |       |
+|   SLICEM                                  |  2094 |     0 |           |       |
+| LUT as Logic                              |  2428 |     0 |     20800 | 11.67 |
+|   using O5 output only                    |     0 |       |           |       |
+|   using O6 output only                    |  1982 |       |           |       |
+|   using O5 and O6                         |   446 |       |           |       |
+| Fully used LUT-FF pairs                   |  1850 |     0 |      2428 | 76.19 |
+| LUT-FF pairs with one unused LUT probe    |     0 |     0 |      2428 |  0.00 |
+| LUT-FF pairs with one unused Flip-Flop    |   578 |     0 |      2428 | 23.81 |
+| Unique Control Sets                       |    12 |       |           |       |
++-------------------------------------------+-------+-------+-----------+-------+
+
+
+3. Memory
+---------
+
++-------------------+------+-------+-----------+-------+
+|     Site Type     | Used | Fixed | Available | Util% |
++-------------------+------+-------+-----------+-------+
+| Block RAM Tile    |    0 |     0 |        50 |  0.00 |
+|   RAMB36/FIFO*    |    0 |     0 |        50 |  0.00 |
+|   RAMB18          |    0 |     0 |       100 |  0.00 |
++-------------------+------+-------+-----------+-------+
+* Note: Each Block RAM Tile contains two 18Kb Block RAMs or one 36Kb Block RAM.

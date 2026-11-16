@@ -13,11 +13,11 @@ resource usage, and timing.
 | [Yash Kumar](https://github.com/hypnoastic) | Way-0/Way-1 RAM; memory interface & model; repo lead |
 | [Dhruv Kumar](https://github.com/drv-01) | Valid bits & LRU state; tag comparators |
 | [Ritesh](https://github.com/Ritxshhh) | Cache controller FSM; top-level integration; video lead |
-| Parul | Verification (traces, testbench), synthesis, hit-rate analysis |
+| [Parul Nehra](https://github.com/parul-nehra) | Verification (traces, testbench), synthesis, hit-rate analysis |
 
 ## Demo Video
 
-Demo video pending recording/upload. Parul’s GitHub profile is pending confirmation.
+Demo video pending recording/upload.
 
 ## Design Parameters
 
@@ -44,7 +44,7 @@ The table above records the agreed design parameters.
 ├── tb/             Testbenches
 ├── sim/            Simulation scripts, waveforms, and sim/traces/ (access-trace files)
 ├── synth/          Synthesis utilization & timing reports
-├── docs/           design_parameters.md, hit_rate_analysis.md, video_script.md
+├── docs/           design_parameters.md, hit_rate_analysis.md, verification.md, video_script.md
 ├── report/         IEEE report source + exported PDF
 └── README.md
 ```
@@ -67,40 +67,42 @@ The table above records the agreed design parameters.
 Install Icarus Verilog (macOS: `brew install icarus-verilog`), then from the repo root:
 
 ```sh
+# Run full verification suite (unit tests, memory tests, smoke tests, trace benchmarks):
 make test
 ```
 
-This runs `tb_way_ram` and `tb_mem_model` (memory latencies 6, 1, and 3).
-Every check prints PASS or terminates with a nonzero failure. See
-[verification results](docs/verification.md) for tested values and timing.
-
-Run the existing integrated smoke test with the real modules:
+**Regenerate access traces:**
 
 ```sh
-mkdir -p sim/build
-iverilog -g2012 -s tb_cache_2way_smoke -o sim/build/cache.vvp rtl/*.v tb/tb_cache_2way_smoke.v
-vvp sim/build/cache.vvp
+make traces
+# Or directly: python3 sim/gen_traces.py
 ```
 
-Do not compile `tb/stubs/submodule_stubs.v` with real RTL: module names overlap.
-The smoke test uses its own inline memory; the dedicated memory test verifies
-`rtl/mem_model.v`. See the [Member 3 and 4 port handoff](docs/member_handoff.md)
-for interfaces, memory range, request protocol, and personal commit instructions.
+**Run trace-driven direct-mapped vs. 2-way comparison:**
 
-`sim/traces`, `synth`, and `docs` are present for later trace analysis,
-synthesis reports, and documentation. Trace generation, cache comparison,
-and Vivado synthesis scripts are pending their owners' contributions.
+```sh
+make test-traces
+```
+
+Per-access logs are written to `sim/results_direct.log` and `sim/results_2way.log`. Detailed architectural findings and trade-offs are documented in [`docs/hit_rate_analysis.md`](docs/hit_rate_analysis.md) and [`synth/synthesis_summary.md`](synth/synthesis_summary.md).
+
+**Re-run FPGA synthesis (Vivado batch mode):**
+
+```sh
+cd synth
+vivado -mode batch -source synth_direct_mapped.tcl
+vivado -mode batch -source synth_cache_2way.tcl
+```
 
 ## Contributing
 
 Repository: [Ritxshhh/2-Way_Set_Associative_Cache_with_LRU](https://github.com/Ritxshhh/2-Way_Set_Associative_Cache_with_LRU).
-Each teammate must commit and push their own work using their own GitHub account.
-This change is authored as Yash Kumar. GitHub contributor records verify
-`drv-01` and `PunitYadavRao`; the repository owner is `Ritxshhh`.
-The local authenticated account is `hypnoastic`. Other teammates' future pushes
-must be completed by those teammates; this repository cannot enforce their identity.
+Each teammate commits and pushes their own work using their own GitHub account.
 
 ## Report & Submission
 
 - IEEE report: [`report/IEEE_report.pdf`](report/IEEE_report.pdf)
+- Verification report: [`docs/verification.md`](docs/verification.md)
+- Hit-rate & architecture evaluation: [`docs/hit_rate_analysis.md`](docs/hit_rate_analysis.md)
+- Synthesis summary: [`synth/synthesis_summary.md`](synth/synthesis_summary.md)
 - RAM/memory integration and ownership: [member handoff](docs/member_handoff.md).
