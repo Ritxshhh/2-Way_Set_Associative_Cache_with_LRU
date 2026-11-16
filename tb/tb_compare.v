@@ -7,7 +7,7 @@
 //   each wired to its own mem_model instance (Member 2) with identical LATENCY
 //   and identical initial backing-memory contents.
 //
-//   Parameters / plusargs supported:
+//   Parameters / plusargs supported (defaults work from the repo root or tb/):
 //     +trace=<path>       Path to input trace file (default: sim/traces/random.trc)
 //     +log_direct=<path>  Output log for direct-mapped (default: sim/results_direct.log)
 //     +log_2way=<path>    Output log for 2-way SA (default: sim/results_2way.log)
@@ -150,6 +150,7 @@ module tb_compare;
     reg [1023:0] trace_filename;
     reg [1023:0] log_direct_path;
     reg [1023:0] log_2way_path;
+    reg          at_root;
 
     // ------------------------------------------------------------------
     // Access Execution Task
@@ -274,15 +275,21 @@ module tb_compare;
     reg [31:0]    trace_wdata;
 
     initial begin
+        // Default paths are relative to the repo root; fall back to ../ so the
+        // bench also runs from tb/.
+        fd_trace = $fopen("sim/gen_traces.py", "r");
+        at_root  = (fd_trace != 0);
+        if (at_root) $fclose(fd_trace);
+
         // Process plusargs
         if (!$value$plusargs("trace=%s", trace_filename)) begin
-            trace_filename = "sim/traces/random.trc";
+            trace_filename = at_root ? "sim/traces/random.trc" : "../sim/traces/random.trc";
         end
         if (!$value$plusargs("log_direct=%s", log_direct_path)) begin
-            log_direct_path = "sim/results_direct.log";
+            log_direct_path = at_root ? "sim/results_direct.log" : "../sim/results_direct.log";
         end
         if (!$value$plusargs("log_2way=%s", log_2way_path)) begin
-            log_2way_path = "sim/results_2way.log";
+            log_2way_path = at_root ? "sim/results_2way.log" : "../sim/results_2way.log";
         end
 
         // Initialize golden memory matching mem_model initial state

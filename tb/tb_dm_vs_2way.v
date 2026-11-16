@@ -10,9 +10,9 @@
 // cache keeps both conflicting lines resident while the direct-mapped
 // cache thrashes (conflict misses on every access after the first fill).
 //
-// Addresses used (all map to the same set/index):
-//   DM  index 0:  0x0000_0000 (tag 0), 0x0000_0800 (tag 1)
-//   2W  set   0:  0x0000_0000 (tag 0), 0x0000_0400 (tag 1)
+// Both caches see the identical addresses A = 0x0000_0000, B = 0x0000_0800:
+//   DM  index 0:  A (tag 0), B (tag 1)
+//   2W  set   0:  A (tag 0), B (tag 2)
 //
 // Access pattern:   R A, R B, R A, R B, R A     (5 reads)
 // Expected DM:      M    M    M    M    M        (all conflict misses after step 1-2)
@@ -142,11 +142,9 @@ module tb_dm_vs_2way;
     // ================================================================
     //  Test sequence
     // ================================================================
-    // Addresses that conflict on the SAME index / set:
-    //   DM:  A = 0x0000_0000   B = 0x0000_0800   (both index 0)
-    //   2W:  A = 0x0000_0000   B = 0x0000_0400   (both set   0)
-    localparam [31:0] DM_A = 32'h0000_0000,  DM_B = 32'h0000_0800;
-    localparam [31:0] SA_A = 32'h0000_0000,  SA_B = 32'h0000_0400;
+    // Two addresses that conflict on DM index 0 and also share 2-way set 0:
+    //   A = 0x0000_0000   B = 0x0000_0800
+    localparam [31:0] ADDR_A = 32'h0000_0000,  ADDR_B = 32'h0000_0800;
 
     reg dm_miss, sa_miss;
     reg [4:0] dm_results;   // bit per step: 1=miss
@@ -173,31 +171,30 @@ module tb_dm_vs_2way;
         $display("==========================================================");
         $display("  Direct-Mapped  vs  2-Way Set-Associative  — Conflict Test");
         $display("==========================================================");
-        $display("  Step  Addr(DM)   DM      Addr(2W)   2-Way");
-        $display("  ----  ---------  ------  ---------  ------");
+        $display("  Step  Address     DM      2-Way");
+        $display("  ----  ----------  ------  ------");
 
         // ----- Run 5 alternating-address reads -----
         // The pattern is:  A  B  A  B  A
         for (step = 0; step < 5; step = step + 1) begin
             // --- Direct-Mapped ---
-            if (step[0] == 0) dm_read(DM_A, dm_miss);
-            else              dm_read(DM_B, dm_miss);
+            if (step[0] == 0) dm_read(ADDR_A, dm_miss);
+            else              dm_read(ADDR_B, dm_miss);
             dm_results[step] = dm_miss;
             if (dm_miss) dm_misses = dm_misses + 1;
             @(posedge clk);
 
             // --- 2-Way SA ---
-            if (step[0] == 0) sa_read(SA_A, sa_miss);
-            else              sa_read(SA_B, sa_miss);
+            if (step[0] == 0) sa_read(ADDR_A, sa_miss);
+            else              sa_read(ADDR_B, sa_miss);
             sa_results[step] = sa_miss;
             if (sa_miss) sa_misses = sa_misses + 1;
             @(posedge clk);
 
-            $display("  %0d     0x%08h  %s    0x%08h  %s",
+            $display("  %0d     0x%08h  %s    %s",
                      step + 1,
-                     step[0] == 0 ? DM_A : DM_B,
+                     step[0] == 0 ? ADDR_A : ADDR_B,
                      dm_miss ? "MISS" : " HIT",
-                     step[0] == 0 ? SA_A : SA_B,
                      sa_miss ? "MISS" : " HIT");
         end
 

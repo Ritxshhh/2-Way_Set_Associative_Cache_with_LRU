@@ -37,7 +37,7 @@ but does not erase backing memory. Connect active-low reset before use.
 Out-of-range requests terminate simulation rather than aliasing. Initial block i
 contains `{4{16'hA5A5, i[15:0]}}`. This is a simulation model, not synthesis RTL.
 
-Compile real `rtl/*.v`, never `tb/stubs/submodule_stubs.v` alongside real modules.
+Compile the real `rtl/*.v` modules (the temporary submodule stubs have been removed).
 Top-level connections now match both the specified RAM ports and the existing
 Member 3 module ports. Run `make test` for focused verification.
 
